@@ -54,13 +54,16 @@ export const sessionsRepository = {
           await tx.store.put(s);
         }
         await tx.done;
-        return;
       } catch (e) {
         console.warn('Error batch saving sessions to IndexedDB:', e);
       }
     }
 
-    localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(sessions));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SESSIONS_KEY, JSON.stringify(sessions));
+    } catch (e) {
+      console.warn('LocalStorage error saving sessions backup:', e);
+    }
   },
 
   async delete(id: string): Promise<void> {

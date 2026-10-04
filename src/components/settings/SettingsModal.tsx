@@ -6,7 +6,7 @@ import { Session } from '../../types/session';
 import { Solve } from '../../types/solve';
 import { createBackupJson, downloadBackupFile } from '../../features/backup/export';
 import { validateBackupJson, mergeImportData, ImportValidationResult } from '../../features/backup/import';
-import { Download, Upload, CheckCircle2 } from 'lucide-react';
+import { Download, Upload, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -55,8 +55,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         setPendingImport(null);
       } else {
         setPendingImport(validation);
+        const formatLabel = validation.format === 'csTimer' ? 'csTimer' : 'CuberT / Estándar';
         setImportStatus(
-          `Archivo válido: ${validation.summary?.sessionsCount} sesiones y ${validation.summary?.solvesCount} solves encontrados.`
+          `Archivo válido (${formatLabel}): ${validation.summary?.solvesCount} solves detectados en ${validation.summary?.sessionsCount} sesión(es).`
         );
       }
     };
@@ -66,11 +67,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const handleExecuteMerge = async () => {
     if (!pendingImport?.data) return;
+
+    // Safety measure: Store emergency pre-import backup in localStorage
+    try {
+      const preImportBackup = createBackupJson(sessions, solves, settings);
+      localStorage.setItem('cubert_pre_import_safety_backup', preImportBackup);
+    } catch {
+      // Ignore quota
+    }
+
     const merged = mergeImportData(sessions, solves, pendingImport.data);
     await onImportMerge(merged.sessions, merged.solves, pendingImport.data.settings);
     setPendingImport(null);
-    setImportStatus('Datos fusionados exitosamente.');
-    setTimeout(() => setImportStatus(null), 3500);
+    setImportStatus(
+      `✓ Fusión completada con éxito: Se agregaron ${merged.addedSolvesCount} nuevos solves. Tus ${solves.length} solves locales se conservaron intactos.`
+    );
+    setTimeout(() => setImportStatus(null), 5000);
   };
 
   const handleExecuteReplace = async () => {
@@ -79,6 +91,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsConfirmingReplace(true);
       return;
     }
+
+    // Crucial safety measure: Automatically download a backup of current data so it can NEVER be lost
+    try {
+      const currentBackup = createBackupJson(sessions, solves, settings);
+      downloadBackupFile(
+        currentBackup,
+        `cubert-copia-seguridad-automatica-${new Date().toISOString().split('T')[0]}.json`
+      );
+    } catch (e) {
+      console.warn('Could not auto-download safety backup:', e);
+    }
+
     await onImportReplace(
       pendingImport.data.sessions,
       pendingImport.data.solves,
@@ -86,8 +110,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     );
     setIsConfirmingReplace(false);
     setPendingImport(null);
-    setImportStatus('Todos los datos han sido reemplazados exitosamente.');
-    setTimeout(() => setImportStatus(null), 3500);
+    setImportStatus('Datos reemplazados. Se ha descargado automáticamente una copia de seguridad previa de tus datos.');
+    setTimeout(() => setImportStatus(null), 6000);
   };
 
   return (
@@ -301,31 +325,45 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                accept=".json"
+                accept=".json,.txt"
                 className="hidden"
               />
             </div>
 
             {/* Pending Import Actions */}
             {pendingImport && (
-              <div className="p-3.5 bg-black/[0.05] dark:bg-white/[0.06] rounded-xl border border-black/[0.08] dark:border-white/[0.1] flex flex-col gap-2.5">
-                <div className="text-xs font-semibold text-neutral-800 dark:text-[#ECECED]">
-                  ¿Cómo deseas importar estos datos?
-                </div>
+              <div className="p-4 bg-black/[0.04] dark:bg-white/[0.04] rounded-2xl border border-[#00FF66]/25 flex flex-col gap-3">
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="secondary" onClick={handleExecuteMerge}>
-                    Fusionar (Merge)
+                  <ShieldCheck size={16} className="text-[#00FF66]" />
+                  <div className="text-xs font-semibold text-neutral-800 dark:text-[#ECECED]">
+                    Importación segura ({pendingImport.format === 'csTimer' ? 'Formato csTimer' : 'Formato CuberT / Estándar'})
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-[#00FF66]/10 border border-[#00FF66]/20 text-[11px] text-neutral-700 dark:text-neutral-300">
+                  <span className="text-neutral-900 dark:text-white font-medium">Tus datos están protegidos:</span> Tienes{' '}
+                  <span className="font-mono font-bold text-[#00FF66]">{solves.length}</span> solves en este navegador. Al seleccionar <strong>Combinar</strong>, no se perderá ningún tiempo existente.
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={handleExecuteMerge}
+                    className="flex-1 text-xs py-2 rounded-xl font-medium bg-[#00FF66] text-black hover:bg-[#00FF66]/90 shadow-xs"
+                  >
+                    <span>Combinar y conservar existentes (Recomendado)</span>
                   </Button>
                   <button
                     type="button"
                     onClick={handleExecuteReplace}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-xl transition-all ${
+                    className={`px-3 py-2 text-xs font-medium rounded-xl transition-all ${
                       isConfirmingReplace
-                        ? 'bg-red-600 text-white'
+                        ? 'bg-red-600 text-white shadow-md'
                         : 'bg-red-500/10 text-red-500 dark:text-red-400 hover:bg-red-500/20'
                     }`}
                   >
-                    {isConfirmingReplace ? '¿Confirmar reemplazo total?' : 'Reemplazar todo (Replace)'}
+                    {isConfirmingReplace ? '¿Confirmar reemplazo (descarga backup)?' : 'Reemplazar todo'}
                   </button>
                 </div>
               </div>

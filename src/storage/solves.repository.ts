@@ -69,13 +69,16 @@ export const solvesRepository = {
           await tx.store.put(s);
         }
         await tx.done;
-        return;
       } catch (e) {
         console.warn('Error batch saving solves to IndexedDB:', e);
       }
     }
 
-    localStorage.setItem(LOCAL_STORAGE_SOLVES_KEY, JSON.stringify(solves));
+    try {
+      localStorage.setItem(LOCAL_STORAGE_SOLVES_KEY, JSON.stringify(solves));
+    } catch (e) {
+      console.warn('LocalStorage quota exceeded or unavailable for solves backup:', e);
+    }
   },
 
   async delete(id: string): Promise<void> {
