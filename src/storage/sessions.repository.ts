@@ -51,7 +51,7 @@ export const sessionsRepository = {
       try {
         const tx = db.transaction('sessions', 'readwrite');
         for (const s of sessions) {
-          await tx.store.put(s);
+          tx.store.put(s);
         }
         await tx.done;
       } catch (e) {

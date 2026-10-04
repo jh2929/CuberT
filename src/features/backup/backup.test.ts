@@ -188,5 +188,74 @@ describe('Backup Export & Import', () => {
     // User's local session is preserved
     expect(merged.sessions.some((s) => s.id === 'my-local-sess')).toBe(true);
   });
+
+  it('merges solves directly into activeSession when targetSessionId is provided', () => {
+    const localhostSolves: Solve[] = [
+      {
+        id: 'user-solve-1',
+        sessionId: 'active-session-123',
+        event: '333',
+        rawTime: 9200,
+        finalTime: 9200,
+        penalty: 'none',
+        scramble: 'R U R',
+        createdAt: 5000,
+      },
+    ];
+    const localhostSessions: Session[] = [
+      { id: 'active-session-123', name: 'Práctica Actual', event: '333', createdAt: 1000 },
+    ];
+
+    const imported = {
+      version: 1 as const,
+      app: 'CuberT' as const,
+      exportedAt: new Date().toISOString(),
+      sessions: [{ id: 'sess-abc', name: 'Exported Session', event: '333' as const, createdAt: 2000 }],
+      solves: [
+        {
+          id: 'imported-solve-1',
+          sessionId: 'sess-abc',
+          event: '333' as const,
+          rawTime: 11000,
+          finalTime: 11000,
+          penalty: 'none' as const,
+          scramble: 'U R U',
+          createdAt: 6000,
+        },
+      ],
+      settings: DEFAULT_SETTINGS,
+    };
+
+    const merged = mergeImportData(localhostSessions, localhostSolves, imported, {
+      targetSessionId: 'active-session-123',
+    });
+
+    expect(merged.solves).toHaveLength(2);
+    // Both solves now belong to the active session!
+    expect(merged.solves.every((s) => s.sessionId === 'active-session-123')).toBe(true);
+    expect(merged.activeSessionIdToSet).toBe('active-session-123');
+  });
+
+  it('correctly parses JSON with nested solves inside sessions array', () => {
+    const nestedJson = JSON.stringify({
+      sessions: [
+        {
+          id: 's1',
+          name: 'CubeDesk Session',
+          event: '333',
+          solves: [
+            { time: 10.5, scramble: "R U R'", date: '2026-03-01T12:00:00Z' },
+            { time: 12.2, scramble: "F R U", date: '2026-03-01T12:01:00Z' },
+          ],
+        },
+      ],
+    });
+
+    const result = validateBackupJson(nestedJson);
+    expect(result.valid).toBe(true);
+    expect(result.summary?.solvesCount).toBe(2);
+    expect(result.data?.solves[0].rawTime).toBe(12200); // Newest first (12:01)
+    expect(result.data?.solves[1].rawTime).toBe(10500); // Older (12:00)
+  });
 });
 

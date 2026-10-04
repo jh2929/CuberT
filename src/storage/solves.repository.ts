@@ -66,7 +66,7 @@ export const solvesRepository = {
       try {
         const tx = db.transaction('solves', 'readwrite');
         for (const s of solves) {
-          await tx.store.put(s);
+          tx.store.put(s);
         }
         await tx.done;
       } catch (e) {

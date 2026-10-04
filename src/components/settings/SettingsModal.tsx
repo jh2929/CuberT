@@ -15,8 +15,14 @@ interface SettingsModalProps {
   onUpdateSettings: (partial: Partial<UserSettings>) => Promise<void>;
   sessions: Session[];
   solves: Solve[];
+  activeSession: Session;
   onImportReplace: (sessions: Session[], solves: Solve[], settings: UserSettings) => Promise<void>;
-  onImportMerge: (sessions: Session[], solves: Solve[], settings: UserSettings) => Promise<void>;
+  onImportMerge: (
+    sessions: Session[],
+    solves: Solve[],
+    settings: UserSettings,
+    targetActiveSessionId?: string
+  ) => Promise<void>;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -26,6 +32,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateSettings,
   sessions,
   solves,
+  activeSession,
   onImportReplace,
   onImportMerge,
 }) => {
@@ -33,6 +40,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [pendingImport, setPendingImport] = useState<ImportValidationResult | null>(null);
   const [isConfirmingReplace, setIsConfirmingReplace] = useState(false);
+  const [targetMode, setTargetMode] = useState<'current' | 'separate'>('current');
 
   const handleExportBackup = () => {
     const jsonStr = createBackupJson(sessions, solves, settings);
@@ -76,13 +84,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       // Ignore quota
     }
 
-    const merged = mergeImportData(sessions, solves, pendingImport.data);
-    await onImportMerge(merged.sessions, merged.solves, pendingImport.data.settings);
+    const targetSessionId = targetMode === 'current' ? activeSession.id : undefined;
+    const merged = mergeImportData(sessions, solves, pendingImport.data, { targetSessionId });
+    await onImportMerge(
+      merged.sessions,
+      merged.solves,
+      pendingImport.data.settings,
+      merged.activeSessionIdToSet
+    );
     setPendingImport(null);
     setImportStatus(
-      `✓ Fusión completada con éxito: Se agregaron ${merged.addedSolvesCount} nuevos solves. Tus ${solves.length} solves locales se conservaron intactos.`
+      `✓ ¡Éxito! Se sincronizaron ${merged.addedSolvesCount} solves nuevos ${
+        targetMode === 'current' ? `en la sesión "${activeSession.name}"` : 'en tus sesiones'
+      }. Todos tus ${solves.length} solves locales anteriores se conservaron intactos.`
     );
-    setTimeout(() => setImportStatus(null), 5000);
   };
 
   const handleExecuteReplace = async () => {
@@ -345,14 +360,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <span className="font-mono font-bold text-[#00FF66]">{solves.length}</span> solves en este navegador. Al seleccionar <strong>Combinar</strong>, no se perderá ningún tiempo existente.
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                {/* Target Session Selection */}
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <span className="text-[11px] font-medium text-neutral-600 dark:text-neutral-400">
+                    ¿Dónde deseas guardar los solves importados?
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setTargetMode('current')}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        targetMode === 'current'
+                          ? 'border-[#00FF66] bg-[#00FF66]/10 text-neutral-900 dark:text-white'
+                          : 'border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">Sesión activa ({activeSession.name})</div>
+                      <div className="text-[10px] opacity-75">Aparecerán al instante en tu pantalla actual</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTargetMode('separate')}
+                      className={`p-2.5 rounded-xl border text-left transition-all ${
+                        targetMode === 'separate'
+                          ? 'border-[#00FF66] bg-[#00FF66]/10 text-neutral-900 dark:text-white'
+                          : 'border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300'
+                      }`}
+                    >
+                      <div className="text-xs font-semibold">Sesiones del archivo ({pendingImport.summary?.sessionsCount || 1})</div>
+                      <div className="text-[10px] opacity-75">Crea o conserva las sesiones originales</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
                   <Button
                     size="sm"
                     variant="primary"
                     onClick={handleExecuteMerge}
                     className="flex-1 text-xs py-2 rounded-xl font-medium bg-[#00FF66] text-black hover:bg-[#00FF66]/90 shadow-xs"
                   >
-                    <span>Combinar y conservar existentes (Recomendado)</span>
+                    <span>Combinar y sincronizar ahora (Recomendado)</span>
                   </Button>
                   <button
                     type="button"
@@ -369,11 +417,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
-            {/* Status Message */}
+            {/* Status Message with direct CTA */}
             {importStatus && (
-              <div className="p-3 bg-white/70 dark:bg-white/[0.04] rounded-xl text-[11px] text-neutral-600 dark:text-neutral-300 flex items-center gap-2 border border-black/[0.05] dark:border-white/[0.06]">
-                <CheckCircle2 size={14} className="text-[#00FF66] shrink-0" />
-                <span>{importStatus}</span>
+              <div className="p-3 bg-white/70 dark:bg-white/[0.04] rounded-xl text-[11px] text-neutral-600 dark:text-neutral-300 flex items-center justify-between gap-2 border border-black/[0.05] dark:border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-[#00FF66] shrink-0" />
+                  <span>{importStatus}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onClose}
+                  className="text-xs py-1 px-2.5 rounded-lg shrink-0 bg-neutral-900 text-white dark:bg-white dark:text-black font-semibold"
+                >
+                  Ver solves
+                </Button>
               </div>
             )}
           </div>

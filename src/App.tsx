@@ -250,11 +250,20 @@ export const App: React.FC = () => {
   const handleImportMerge = async (
     mergedSessions: typeof sessions,
     mergedSolves: typeof solves,
-    mergedSettings: typeof settings
+    mergedSettings: typeof settings,
+    targetActiveSessionId?: string
   ) => {
-    await setAllSessions(mergedSessions);
+    await setAllSessions(mergedSessions, targetActiveSessionId);
     await setAllSolves(mergedSolves);
     await updateSettings(mergedSettings);
+
+    const newActive =
+      mergedSessions.find((s) => s.id === targetActiveSessionId) ||
+      mergedSessions.find((s) => s.id === activeSessionId) ||
+      mergedSessions[0];
+    if (newActive) {
+      await initScramble(newActive.event);
+    }
   };
 
   const isRunning = timerState === 'running';
@@ -483,6 +492,7 @@ export const App: React.FC = () => {
         onUpdateSettings={updateSettings}
         sessions={sessions}
         solves={solves}
+        activeSession={activeSession}
         onImportReplace={handleImportReplace}
         onImportMerge={handleImportMerge}
       />
