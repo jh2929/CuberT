@@ -43,33 +43,33 @@ export function checkForNewPB(
   newSolve: Solve,
   allSolvesRecentFirst: Solve[]
 ): NewPBNotification | null {
-  // Check single first
+  // Check single: only fires when an existing PB was broken
   if (newSolve.penalty !== 'DNF' && newSolve.finalTime !== null) {
-    if (previousPBs.single === null || newSolve.finalTime < previousPBs.single) {
+    if (previousPBs.single !== null && newSolve.finalTime < previousPBs.single) {
       return { type: 'single', value: newSolve.finalTime };
     }
   }
 
-  // Check current Ao5
+  // Check current Ao5: only fires when breaking an existing Ao5 PB record
   const currentAo5 = calculateAo5(allSolvesRecentFirst);
   if (currentAo5 !== null) {
-    if (previousPBs.ao5 === null || currentAo5 < previousPBs.ao5) {
+    if (previousPBs.ao5 !== null && currentAo5 < previousPBs.ao5) {
       return { type: 'ao5', value: currentAo5 };
     }
   }
 
-  // Check current Ao12
+  // Check current Ao12: only fires when breaking an existing Ao12 PB record
   const currentAo12 = calculateAo12(allSolvesRecentFirst);
   if (currentAo12 !== null) {
-    if (previousPBs.ao12 === null || currentAo12 < previousPBs.ao12) {
+    if (previousPBs.ao12 !== null && currentAo12 < previousPBs.ao12) {
       return { type: 'ao12', value: currentAo12 };
     }
   }
 
-  // Check current Ao100
+  // Check current Ao100: only fires when breaking an existing Ao100 PB record
   const currentAo100 = calculateAo100(allSolvesRecentFirst);
   if (currentAo100 !== null) {
-    if (previousPBs.ao100 === null || currentAo100 < previousPBs.ao100) {
+    if (previousPBs.ao100 !== null && currentAo100 < previousPBs.ao100) {
       return { type: 'ao100', value: currentAo100 };
     }
   }

@@ -203,10 +203,26 @@ function mapEventToCubing(event: CubeEventId): string {
   }
 }
 
+import { shouldGenerateLuckyScramble, generateLuckyScramble } from './luckyScramble';
+
 /**
- * Generates an official WCA scramble via cubing.js with fallback
+ * Generates an official WCA scramble via cubing.js with fallback,
+ * occasionally and unpredictably generating a lucky scramble for training.
  */
-export async function generateScramble(event: CubeEventId): Promise<string> {
+export async function generateScramble(
+  event: CubeEventId,
+  allowLucky = true,
+  luckyLevel = 2
+): Promise<string> {
+  if (
+    allowLucky &&
+    (event === '333' || event === '333oh') &&
+    shouldGenerateLuckyScramble(allowLucky, luckyLevel)
+  ) {
+    return generateLuckyScramble(event, luckyLevel);
+  }
+
+
   try {
     const cubing = await getCubingScrambleModule();
     const cubingId = mapEventToCubing(event);
@@ -217,3 +233,4 @@ export async function generateScramble(event: CubeEventId): Promise<string> {
     return generateFallbackScramble(event);
   }
 }
+

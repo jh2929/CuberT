@@ -34,18 +34,22 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
   confirmDelete,
 }) => {
   const [note, setNote] = useState(() => solve?.note || '');
+  const [currentPenalty, setCurrentPenalty] = useState<Penalty>(() => solve?.penalty || 'none');
   const [copied, setCopied] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [prevSolveId, setPrevSolveId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFeedback, setExportFeedback] = useState<string | null>(null);
 
-  // Sync state when different solve is opened
-  if (solve && solve.id !== prevSolveId) {
-    setPrevSolveId(solve.id);
-    setNote(solve.note || '');
-    setIsConfirmingDelete(false);
-    setExportFeedback(null);
+  // Sync state when different solve is opened or solve penalty updates
+  if (solve && (solve.id !== prevSolveId || solve.penalty !== currentPenalty)) {
+    if (solve.id !== prevSolveId) {
+      setPrevSolveId(solve.id);
+      setNote(solve.note || '');
+      setIsConfirmingDelete(false);
+      setExportFeedback(null);
+    }
+    setCurrentPenalty(solve.penalty);
   }
 
   if (!solve) return null;
@@ -61,7 +65,8 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
   };
 
   const handlePenaltyChange = async (newPenalty: Penalty) => {
-    const penaltyToApply = solve.penalty === newPenalty ? 'none' : newPenalty;
+    const penaltyToApply = currentPenalty === newPenalty ? 'none' : newPenalty;
+    setCurrentPenalty(penaltyToApply);
     await onUpdatePenalty(solve.id, penaltyToApply);
   };
 
@@ -134,9 +139,17 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
         {/* Time display card */}
         <div className="flex flex-col items-center justify-center p-6 bg-white/[0.04] dark:bg-white/[0.03] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-inner">
           <div className="font-mono-numbers text-5xl sm:text-6xl font-bold tracking-tight text-neutral-900 dark:text-[#F5F5F7]">
-            {formatTime(solve.finalTime, solve.penalty, { precision })}
+            {formatTime(
+              currentPenalty === 'DNF'
+                ? null
+                : currentPenalty === '+2'
+                ? solve.rawTime + 2000
+                : solve.rawTime,
+              currentPenalty,
+              { precision }
+            )}
           </div>
-          {solve.penalty === '+2' && (
+          {currentPenalty === '+2' && (
             <div className="text-xs font-mono text-neutral-400 mt-1.5">
               Tiempo base: {formatTime(solve.rawTime, 'none', { precision })}
             </div>
@@ -148,10 +161,10 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
           <button
             type="button"
             onClick={() => handlePenaltyChange('none')}
-            className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              solve.penalty === 'none'
+            className={`flex-1 py-1.5 text-xs rounded-lg transition-all ${
+              currentPenalty === 'none'
                 ? 'bg-neutral-900 text-white dark:bg-white dark:text-black shadow-xs font-semibold'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white font-medium'
             }`}
           >
             OK
@@ -159,10 +172,10 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
           <button
             type="button"
             onClick={() => handlePenaltyChange('+2')}
-            className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              solve.penalty === '+2'
+            className={`flex-1 py-1.5 text-xs rounded-lg transition-all ${
+              currentPenalty === '+2'
                 ? 'bg-amber-500 text-white shadow-xs font-semibold'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-amber-500'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-amber-500 font-medium'
             }`}
           >
             +2
@@ -170,10 +183,10 @@ export const SolveDetailsModal: React.FC<SolveDetailsModalProps> = ({
           <button
             type="button"
             onClick={() => handlePenaltyChange('DNF')}
-            className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all ${
-              solve.penalty === 'DNF'
+            className={`flex-1 py-1.5 text-xs rounded-lg transition-all ${
+              currentPenalty === 'DNF'
                 ? 'bg-red-500 text-white shadow-xs font-semibold'
-                : 'text-neutral-600 dark:text-neutral-400 hover:text-red-500'
+                : 'text-neutral-600 dark:text-neutral-400 hover:text-red-500 font-medium'
             }`}
           >
             DNF

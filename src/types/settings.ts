@@ -14,6 +14,8 @@ export interface UserSettings {
   confirmSolveDeletion: boolean;
   backupReminderInterval: number; // e.g. 100 solves; 0 to disable
   lastBackupSolveCount: number;
+  luckyScrambles: boolean;
+  luckyScrambleLevel: number; // 0: never, 1: low, 2: normal (default), 3: high, 4: ultra (cross + 3 pairs)
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -27,4 +29,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   confirmSolveDeletion: true,
   backupReminderInterval: 100,
   lastBackupSolveCount: 0,
+  luckyScrambles: true,
+  luckyScrambleLevel: 2,
 };
+
+

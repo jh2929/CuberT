@@ -20,8 +20,13 @@ import { StatsPanel } from './components/stats/StatsPanel';
 import { NewPBBanner } from './components/stats/NewPBBanner';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { BackupReminderBanner } from './components/ui/BackupReminderBanner';
+import { SolveDeltaBadge } from './components/timer/SolveDeltaBadge';
+import { VirtualCube } from './components/virtualCube/VirtualCube';
 import { PanelLeft, X } from 'lucide-react';
-import { CubeEventId } from './types/event';
+import { CubeEventId, CUBE_EVENTS } from './types/event';
+
+
+
 
 export const App: React.FC = () => {
   // Stores
@@ -70,7 +75,10 @@ export const App: React.FC = () => {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isVirtualCubeActive, setIsVirtualCubeActive] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
+
+
 
   // Theme & Sound hooks
   useTheme(settings.theme);
@@ -81,10 +89,12 @@ export const App: React.FC = () => {
     return sessions.find((s) => s.id === activeSessionId) || sessions[0];
   }, [sessions, activeSessionId]);
 
-  // Solves for active session (newest first)
+  // Solves for active session strictly filtered by current event (each category has its own times and history)
   const sessionSolves = useMemo(() => {
     if (!activeSession) return [];
-    return solves.filter((s) => s.sessionId === activeSession.id);
+    return solves.filter(
+      (s) => s.sessionId === activeSession.id && s.event === activeSession.event
+    );
   }, [solves, activeSession]);
 
   // Solves count map for all sessions
@@ -111,9 +121,9 @@ export const App: React.FC = () => {
   // When active session changes or loads, sync scramble event
   useEffect(() => {
     if (activeSession) {
-      initScramble(activeSession.event);
+      initScramble(activeSession.event, settings.luckyScrambles, settings.luckyScrambleLevel);
     }
-  }, [activeSession, initScramble]);
+  }, [activeSession, initScramble, settings.luckyScrambles, settings.luckyScrambleLevel]);
 
   // Timer finish handler
   const handleFinishSolve = useCallback(
@@ -134,7 +144,11 @@ export const App: React.FC = () => {
       });
 
       // 2. Generate next scramble
-      await generateNextScramble(activeSession.event);
+      await generateNextScramble(
+        activeSession.event,
+        settings.luckyScrambles,
+        settings.luckyScrambleLevel
+      );
     },
     [
       activeSession,
@@ -142,12 +156,18 @@ export const App: React.FC = () => {
       addSolve,
       settings.backupReminderInterval,
       settings.lastBackupSolveCount,
+      settings.luckyScrambles,
+      settings.luckyScrambleLevel,
       generateNextScramble,
     ]
   );
 
+
   const hasOpenModal =
-    isStatsModalOpen || isSettingsModalOpen || isSessionModalOpen || isMobileSidebarOpen;
+    isStatsModalOpen ||
+    isSettingsModalOpen ||
+    isSessionModalOpen ||
+    isMobileSidebarOpen;
 
   // Custom Timer hook
   const {
@@ -211,6 +231,7 @@ export const App: React.FC = () => {
     onToggleFocusMode: handleToggleFocusMode,
     onEscape: () => {
       if (isMobileSidebarOpen) setIsMobileSidebarOpen(false);
+      else if (isVirtualCubeActive) setIsVirtualCubeActive(false);
       else if (isStatsModalOpen) setIsStatsModalOpen(false);
       else if (isSettingsModalOpen) setIsSettingsModalOpen(false);
       else if (isSessionModalOpen) setIsSessionModalOpen(false);
@@ -221,12 +242,28 @@ export const App: React.FC = () => {
     hasOpenModal,
   });
 
-  // Event change handler
+
+
+  // Event change handler: ensures each category has its own separate session, times, and history
   const handleSelectEvent = async (event: CubeEventId) => {
-    if (!activeSession) return;
-    await updateSessionEvent(activeSession.id, event);
-    await generateNextScramble(event);
+    const matchingSession = sessions.find((s) => s.event === event);
+    if (matchingSession) {
+      setActiveSession(matchingSession.id);
+    } else {
+      const currentSessionSolvesCount = solves.filter(
+        (s) => s.sessionId === activeSession?.id
+      ).length;
+      if (activeSession && currentSessionSolvesCount === 0) {
+        await updateSessionEvent(activeSession.id, event);
+      } else {
+        const eventName = CUBE_EVENTS[event]?.shortName || event;
+        const newSession = await createSession(eventName, event);
+        setActiveSession(newSession.id);
+      }
+    }
+    await generateNextScramble(event, settings.luckyScrambles, settings.luckyScrambleLevel);
   };
+
 
   // Immediate Backup handler
   const handleBackupNow = () => {
@@ -294,6 +331,19 @@ export const App: React.FC = () => {
         precision={settings.timerPrecision}
       />
 
+      {/* Esquina superior derecha: Delta vs Solve Anterior */}
+      <div
+        className={`fixed top-3.5 right-3.5 sm:top-4 sm:right-5 z-30 transition-all duration-200 ${
+          hideSecondaryUI ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100 translate-y-0'
+        }`}
+      >
+        <SolveDeltaBadge
+          sessionSolves={sessionSolves}
+          precision={settings.timerPrecision}
+        />
+      </div>
+
+
       {/* Focus Mode floating escape pill */}
       {isFocusMode && !isRunning && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/75 dark:bg-[#141417]/85 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] text-xs text-neutral-600 dark:text-neutral-400 shadow-lg">
@@ -358,6 +408,11 @@ export const App: React.FC = () => {
                 setIsMobileSidebarOpen(false);
                 setIsSettingsModalOpen(true);
               }}
+              onToggleVirtualCube={() => {
+                setIsMobileSidebarOpen(false);
+                setIsVirtualCubeActive((prev) => !prev);
+              }}
+              isVirtualCubeActive={isVirtualCubeActive}
               onUndoDelete={undoDeleteSolve}
               onUpdatePenalty={updatePenalty}
               onUpdateNote={updateNote}
@@ -390,6 +445,8 @@ export const App: React.FC = () => {
           onOpenSessionManager={() => setIsSessionModalOpen(true)}
           onOpenStatsModal={() => setIsStatsModalOpen(true)}
           onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+          onToggleVirtualCube={() => setIsVirtualCubeActive((prev) => !prev)}
+          isVirtualCubeActive={isVirtualCubeActive}
           onUndoDelete={undoDeleteSolve}
           onUpdatePenalty={updatePenalty}
           onUpdateNote={updateNote}
@@ -397,6 +454,8 @@ export const App: React.FC = () => {
           confirmDelete={settings.confirmSolveDeletion}
         />
       </div>
+
+
 
       {/* Main Workspace */}
       <main
@@ -422,24 +481,60 @@ export const App: React.FC = () => {
           />
         </div>
 
-        {/* The Timer Centerpiece */}
-        <div className="w-full flex-1 flex items-center justify-center my-auto min-h-[260px] sm:min-h-[340px]">
-          <Timer
-            elapsed={elapsed}
-            state={timerState}
-            inspectionCountdown={inspectionCountdown}
-            inspectionPenalty={inspectionPenalty}
-            precision={settings.timerPrecision}
-            inspectionEnabled={settings.inspection}
-            onTriggerDown={handleTriggerDown}
-            onTriggerUp={handleTriggerUp}
-          />
+        {/* The Centerpiece: Timer or Virtual Cube */}
+        {!isVirtualCubeActive ? (
+          <div className="w-full flex-1 flex items-center justify-center my-auto min-h-[260px] sm:min-h-[340px]">
+            <Timer
+              elapsed={elapsed}
+              state={timerState}
+              inspectionCountdown={inspectionCountdown}
+              inspectionPenalty={inspectionPenalty}
+              precision={settings.timerPrecision}
+              inspectionEnabled={settings.inspection}
+              onTriggerDown={handleTriggerDown}
+              onTriggerUp={handleTriggerUp}
+            />
+          </div>
+        ) : (
+          <div className="w-full flex-1 flex flex-col items-center justify-center my-auto">
+            {/* Center: Virtual Cube 3D */}
+            <div className="w-full max-w-xl flex flex-col items-center justify-center">
+              <VirtualCube onClose={() => setIsVirtualCubeActive(false)} />
+            </div>
+
+            {/* Side: Compact Timer on top-right background (NO card, away from cube and buttons) */}
+            <div className="fixed top-5 sm:top-6 right-5 sm:right-8 md:right-10 z-30 flex flex-col items-end pointer-events-auto select-none scale-75 sm:scale-85 md:scale-90 origin-top-right">
+              <Timer
+                elapsed={elapsed}
+                state={timerState}
+                inspectionCountdown={inspectionCountdown}
+                inspectionPenalty={inspectionPenalty}
+                precision={settings.timerPrecision}
+                inspectionEnabled={settings.inspection}
+                onTriggerDown={handleTriggerDown}
+                onTriggerUp={handleTriggerUp}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Firma by Jhezdev alineada hacia la derecha con el tiempo */}
+        <div className="fixed bottom-2.5 right-6 sm:right-10 md:right-14 z-20 select-none text-right pointer-events-auto">
+          <a
+            href="https://jesus-herrera.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer author"
+            className="text-[11px] font-mono tracking-widest text-neutral-400 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-200 transition-colors"
+            title="Desarrollado por Jhezdev (Jesús Herrera)"
+          >
+            by Jhezdev
+          </a>
         </div>
 
         {/* Mobile Scramble Cube Visualizer (bottom of screen on phones) */}
         <div
           className={`md:hidden flex justify-center pb-2 transition-all duration-150 ${
-            hideSecondaryUI ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            hideSecondaryUI || isVirtualCubeActive ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
         >
           <CubeVisualizer
@@ -452,7 +547,7 @@ export const App: React.FC = () => {
       {/* Desktop Bottom-Right: Scramble Cube Visualizer Card ("desarmado por caras") */}
       <div
         className={`hidden md:block fixed bottom-4 right-4 z-20 transition-all duration-300 ${
-          hideSecondaryUI
+          hideSecondaryUI || isVirtualCubeActive
             ? 'opacity-0 pointer-events-none translate-y-6 scale-95'
             : 'opacity-100 translate-y-0 scale-100'
         }`}
@@ -499,5 +594,7 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
+
 
 export default App;

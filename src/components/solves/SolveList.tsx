@@ -32,7 +32,7 @@ export const SolveList: React.FC<SolveListProps> = ({
   onDeleteSolve,
   confirmDelete,
 }) => {
-  const [selectedSolve, setSelectedSolve] = useState<Solve | null>(null);
+  const [selectedSolveId, setSelectedSolveId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(300);
@@ -48,6 +48,7 @@ export const SolveList: React.FC<SolveListProps> = ({
   };
 
   const totalCount = solves.length;
+  const selectedSolve = selectedSolveId ? solves.find((s) => s.id === selectedSolveId) || null : null;
 
   // Windowed virtual scroll calculations
   const startIndex = Math.max(0, Math.floor(scrollTop / ITEM_HEIGHT) - VISIBLE_BUFFER);
@@ -112,7 +113,7 @@ export const SolveList: React.FC<SolveListProps> = ({
                     index={startIndex + idx}
                     totalCount={totalCount}
                     precision={precision}
-                    onClick={(s) => setSelectedSolve(s)}
+                    onClick={(s) => setSelectedSolveId(s.id)}
                   />
                 </div>
               ))}
@@ -124,7 +125,7 @@ export const SolveList: React.FC<SolveListProps> = ({
       {/* Solve Details Modal */}
       <SolveDetailsModal
         isOpen={selectedSolve !== null}
-        onClose={() => setSelectedSolve(null)}
+        onClose={() => setSelectedSolveId(null)}
         solve={selectedSolve}
         solveNumber={selectedSolveNumber}
         precision={precision}

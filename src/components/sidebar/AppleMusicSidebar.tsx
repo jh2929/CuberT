@@ -16,9 +16,11 @@ import {
   Minimize2,
   ChevronRight,
   Trophy,
+  Box,
+  X,
 } from 'lucide-react';
 import { Penalty } from '../../types/solve';
-import { X } from 'lucide-react';
+
 
 interface AppleMusicSidebarProps {
   activeSession: Session | undefined;
@@ -35,12 +37,16 @@ interface AppleMusicSidebarProps {
   onOpenSessionManager: () => void;
   onOpenStatsModal: () => void;
   onOpenSettingsModal: () => void;
+  onToggleVirtualCube: () => void;
+  isVirtualCubeActive?: boolean;
   onUndoDelete: () => void;
+
   onUpdatePenalty: (id: string, penalty: Penalty) => Promise<void>;
   onUpdateNote: (id: string, note: string) => Promise<void>;
   onDeleteSolve: (id: string) => Promise<void>;
   confirmDelete: boolean;
 }
+
 
 export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
   activeSession,
@@ -55,6 +61,8 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
   onOpenSessionManager,
   onOpenStatsModal,
   onOpenSettingsModal,
+  onToggleVirtualCube,
+  isVirtualCubeActive = false,
   onUndoDelete,
   onUpdatePenalty,
   onUpdateNote,
@@ -62,10 +70,9 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
   confirmDelete,
 }) => {
   const statItems = [
-    { label: 'PB', value: sessionStats.pbSingle, isPB: true },
-    { label: 'Ao5', value: sessionStats.ao5, isPB: false },
-    { label: 'Ao12', value: sessionStats.ao12, isPB: false },
-    { label: 'Ao100', value: sessionStats.ao100, isPB: false },
+    { label: 'Ao5', value: sessionStats.ao5 },
+    { label: 'Ao12', value: sessionStats.ao12 },
+    { label: 'Ao100', value: sessionStats.ao100 },
   ];
 
   return (
@@ -84,6 +91,20 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
+          <IconButton
+            size="sm"
+            ariaLabel={isVirtualCubeActive ? 'Desactivar Cubo Virtual' : 'Activar Cubo Virtual 3D'}
+            onClick={onToggleVirtualCube}
+            className={`transition-colors ${
+              isVirtualCubeActive
+                ? 'text-[#00FF66] bg-[#00FF66]/15 dark:text-[#10E364] dark:bg-[#10E364]/15 ring-1 ring-[#00FF66]/30'
+                : 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+            }`}
+          >
+            <Box size={15} />
+          </IconButton>
+
+
           <IconButton
             size="sm"
             ariaLabel="Modo Focus (F)"
@@ -110,6 +131,7 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
           >
             <SettingsIcon size={15} />
           </IconButton>
+
 
           {onCloseMobile && (
             <IconButton
@@ -139,36 +161,30 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
         />
       </div>
 
-      {/* 3. Averages & PB Section (Segmented Apple Card) */}
+      {/* 3. Rolling Averages Section (Segmented Apple Card - PB resides in Stats) */}
       <div className="p-3 border-b border-black/[0.04] dark:border-white/[0.06] shrink-0">
         <div
           onClick={onOpenStatsModal}
           className="p-2.5 rounded-2xl bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.05] dark:hover:bg-white/[0.07] border border-black/[0.04] dark:border-white/[0.05] transition-all cursor-pointer group"
-          title="Ver estadísticas detalladas y progreso"
+          title="Ver estadísticas detalladas y récords en el panel de estadísticas"
           role="button"
           tabIndex={0}
         >
           <div className="flex items-center justify-between mb-1.5 px-1">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
               <Trophy size={11} className="text-[#00FF66]" />
-              <span>Averages & Récord</span>
+              <span>Promedios de últimos tiempos</span>
             </div>
             <ChevronRight size={12} className="text-neutral-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </div>
 
-          <div className="grid grid-cols-4 divide-x divide-black/[0.04] dark:divide-white/[0.06]">
+          <div className="grid grid-cols-3 divide-x divide-black/[0.04] dark:divide-white/[0.06]">
             {statItems.map((item) => (
-              <div key={item.label} className="flex flex-col items-center px-0.5">
+              <div key={item.label} className="flex flex-col items-center px-1">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
                   {item.label}
                 </span>
-                <span
-                  className={`font-mono-numbers text-xs font-semibold mt-0.5 tracking-tight ${
-                    item.isPB && item.value !== null
-                      ? 'text-neutral-900 dark:text-[#00FF66]'
-                      : 'text-neutral-800 dark:text-[#ECECED]'
-                  }`}
-                >
+                <span className="font-mono-numbers text-xs font-semibold mt-0.5 tracking-tight text-neutral-800 dark:text-[#ECECED]">
                   {item.value !== null ? formatTime(item.value, 'none', { precision }) : '—'}
                 </span>
               </div>

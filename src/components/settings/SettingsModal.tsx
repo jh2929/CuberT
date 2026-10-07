@@ -6,7 +6,8 @@ import { Session } from '../../types/session';
 import { Solve } from '../../types/solve';
 import { createBackupJson, downloadBackupFile } from '../../features/backup/export';
 import { validateBackupJson, mergeImportData, ImportValidationResult } from '../../features/backup/import';
-import { Download, Upload, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Download, Upload, CheckCircle2, ShieldCheck, ExternalLink } from 'lucide-react';
+
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -272,6 +273,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
             <div className="flex items-center justify-between p-3">
               <div>
+                <span className="text-neutral-800 dark:text-[#ECECED] font-medium">Mezclas &apos;Lucky&apos; impredecibles</span>
+                <div className="text-[11px] text-neutral-400">Genera aleatoriamente scrambles con posiciones favorables (cruz fácil, pares)</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onUpdateSettings({ luckyScrambles: !settings.luckyScrambles })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  settings.luckyScrambles ? 'bg-[#00FF66]' : 'bg-neutral-200 dark:bg-neutral-700'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                    settings.luckyScrambles ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Slider de nivel de Lucky Scrambles */}
+            <div className="flex flex-col gap-2 p-3 bg-black/[0.02] dark:bg-white/[0.02] rounded-xl">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-700 dark:text-neutral-300 font-medium">Frecuencia / Dificultad de mezclas</span>
+                <span className="font-mono font-bold text-[#00FF66] text-xs">
+                  {settings.luckyScrambleLevel === 0 && 'Never (Desactivado)'}
+                  {settings.luckyScrambleLevel === 1 && 'Bajo (Raras veces)'}
+                  {settings.luckyScrambleLevel === 2 && 'Normal (Defecto)'}
+                  {settings.luckyScrambleLevel === 3 && 'Fácil (Frecuente)'}
+                  {settings.luckyScrambleLevel === 4 && 'Máximo (Cruz + 3 pares hechos)'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="4"
+                step="1"
+                value={settings.luckyScrambles ? settings.luckyScrambleLevel : 0}
+                disabled={!settings.luckyScrambles}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onUpdateSettings({ luckyScrambleLevel: val, luckyScrambles: val > 0 });
+                }}
+                className="w-full accent-[#00FF66] cursor-pointer h-1.5 bg-neutral-200 dark:bg-neutral-700 rounded-lg"
+              />
+              <div className="flex justify-between text-[10px] text-neutral-400 font-mono">
+                <span>Never</span>
+                <span>Bajo</span>
+                <span>Normal</span>
+                <span>Fácil</span>
+                <span>Máximo</span>
+              </div>
+              <div className="text-[11px] text-neutral-500 dark:text-neutral-400 italic mt-0.5">
+                {settings.luckyScrambleLevel === 0 && 'No aparecerán scrambles lucky en absoluto.'}
+                {settings.luckyScrambleLevel === 1 && 'Aparecen muy rara vez para mantenerte alerta.'}
+                {settings.luckyScrambleLevel === 2 && 'Mezclas favorables aleatorias de vez en cuando (cruces sencillas o bloques).'}
+                {settings.luckyScrambleLevel === 3 && 'Alta probabilidad de cruces casi resueltas y pares de F2L emparejados.'}
+                {settings.luckyScrambleLevel === 4 && '¡Posición de ensueño! Cruz completamente resuelta y hasta 3 pares de F2L armados.'}
+              </div>
+            </div>
+
+
+
+            <div className="flex items-center justify-between p-3">
+              <div>
                 <span className="text-neutral-800 dark:text-[#ECECED] font-medium">Sonidos sutiles</span>
                 <div className="text-[11px] text-neutral-400">Chime de listo y aviso de inspección</div>
               </div>
@@ -436,7 +500,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* Developer / Portfolio Section */}
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#00FF66]/5 dark:bg-[#00FF66]/10 border border-[#00FF66]/20 text-neutral-700 dark:text-neutral-300 select-none">
+          <div className="flex flex-col">
+            <span className="font-semibold text-xs text-neutral-900 dark:text-white">
+              Desarrollado por Jhezdev
+            </span>
+            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+              Conoce más proyectos y portfolio oficial
+            </span>
+          </div>
+          <a
+            href="https://jesus-herrera.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer author"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-black font-semibold text-xs shadow-xs hover:opacity-90 transition-opacity"
+          >
+            <span>Portfolio</span>
+            <ExternalLink size={12} />
+          </a>
+        </div>
       </div>
     </Modal>
   );
 };
+

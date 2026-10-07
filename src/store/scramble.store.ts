@@ -8,8 +8,8 @@ interface ScrambleState {
   isGenerating: boolean;
   activeEvent: CubeEventId;
 
-  initScramble: (event: CubeEventId) => Promise<void>;
-  generateNextScramble: (event?: CubeEventId) => Promise<string>;
+  initScramble: (event: CubeEventId, allowLucky?: boolean, luckyLevel?: number) => Promise<void>;
+  generateNextScramble: (event?: CubeEventId, allowLucky?: boolean, luckyLevel?: number) => Promise<string>;
   goToPreviousScramble: () => boolean;
   copyScrambleToClipboard: () => Promise<boolean>;
 }
@@ -20,14 +20,14 @@ export const useScrambleStore = create<ScrambleState>((set, get) => ({
   isGenerating: false,
   activeEvent: '333',
 
-  initScramble: async (event: CubeEventId) => {
+  initScramble: async (event: CubeEventId, allowLucky = true, luckyLevel = 2) => {
     set({ activeEvent: event, isGenerating: true });
     // Instant fallback first so user never sees blank screen
     const fastScramble = generateFallbackScramble(event);
     set({ currentScramble: fastScramble });
 
     // Official WCA background enhancement
-    generateScramble(event)
+    generateScramble(event, allowLucky, luckyLevel)
       .then((wcaScramble) => {
         // Only replace if user hasn't started a solve yet and event is still the same
         if (get().activeEvent === event && get().currentScramble === fastScramble) {
@@ -39,7 +39,7 @@ export const useScrambleStore = create<ScrambleState>((set, get) => ({
       });
   },
 
-  generateNextScramble: async (event?: CubeEventId) => {
+  generateNextScramble: async (event?: CubeEventId, allowLucky = true, luckyLevel = 2) => {
     const targetEvent = event || get().activeEvent;
     const { currentScramble, previousScrambles } = get();
 
@@ -50,7 +50,7 @@ export const useScrambleStore = create<ScrambleState>((set, get) => ({
     set({ isGenerating: true, previousScrambles: newHistory, activeEvent: targetEvent });
 
     try {
-      const nextScramble = await generateScramble(targetEvent);
+      const nextScramble = await generateScramble(targetEvent, allowLucky, luckyLevel);
       set({ currentScramble: nextScramble, isGenerating: false });
       return nextScramble;
     } catch {
