@@ -39,6 +39,7 @@ interface AppleMusicSidebarProps {
   onOpenSettingsModal: () => void;
   onToggleVirtualCube: () => void;
   isVirtualCubeActive?: boolean;
+  onCollapseSidebar?: () => void;
   onUndoDelete: () => void;
 
   onUpdatePenalty: (id: string, penalty: Penalty) => Promise<void>;
@@ -63,6 +64,7 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
   onOpenSettingsModal,
   onToggleVirtualCube,
   isVirtualCubeActive = false,
+  onCollapseSidebar,
   onUndoDelete,
   onUpdatePenalty,
   onUpdateNote,
@@ -70,25 +72,32 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
   confirmDelete,
 }) => {
   const statItems = [
-    { label: 'Ao5', value: sessionStats.ao5 },
-    { label: 'Ao12', value: sessionStats.ao12 },
-    { label: 'Ao100', value: sessionStats.ao100 },
+    { label: 'PB', value: sessionStats.pbSingle, isPB: true },
+    { label: 'Ao5', value: sessionStats.ao5, isPB: false },
+    { label: 'Ao12', value: sessionStats.ao12, isPB: false },
+    { label: 'Ao100', value: sessionStats.ao100, isPB: false },
   ];
 
   return (
     <aside className="w-64 sm:w-72 h-full flex flex-col rounded-3xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-2xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.06)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] transition-all duration-300 select-none relative">
-      {/* 1. Header: Branding & Action Icons */}
+      {/* 1. Header: Branding (Clickable to collapse) & Action Icons */}
       <div className="p-4 pb-3 flex items-center justify-between border-b border-black/[0.04] dark:border-white/[0.06] shrink-0">
-        <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onCollapseSidebar}
+          className="flex items-center gap-2.5 p-1 -ml-1 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors cursor-pointer group text-left"
+          title="Colapsar barra lateral"
+          aria-label="Colapsar barra lateral"
+        >
           <img
             src="/favicon.svg"
             alt="CuberT logo"
-            className="w-6 h-6 rounded-lg shrink-0 shadow-xs"
+            className="w-6 h-6 rounded-lg shrink-0 shadow-xs group-hover:scale-95 transition-transform"
           />
           <span className="font-bold tracking-tight text-sm text-neutral-900 dark:text-[#F5F5F7]">
             CuberT
           </span>
-        </div>
+        </button>
 
         <div className="flex items-center gap-1">
           <IconButton
@@ -173,18 +182,24 @@ export const AppleMusicSidebar: React.FC<AppleMusicSidebarProps> = ({
           <div className="flex items-center justify-between mb-1.5 px-1">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
               <Trophy size={11} className="text-[#00FF66]" />
-              <span>Promedios de últimos tiempos</span>
+              <span>Averages & Récord</span>
             </div>
             <ChevronRight size={12} className="text-neutral-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </div>
 
-          <div className="grid grid-cols-3 divide-x divide-black/[0.04] dark:divide-white/[0.06]">
+          <div className="grid grid-cols-4 divide-x divide-black/[0.04] dark:divide-white/[0.06]">
             {statItems.map((item) => (
-              <div key={item.label} className="flex flex-col items-center px-1">
+              <div key={item.label} className="flex flex-col items-center px-0.5">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
                   {item.label}
                 </span>
-                <span className="font-mono-numbers text-xs font-semibold mt-0.5 tracking-tight text-neutral-800 dark:text-[#ECECED]">
+                <span
+                  className={`font-mono-numbers text-xs font-semibold mt-0.5 tracking-tight ${
+                    item.isPB && item.value !== null
+                      ? 'text-neutral-900 dark:text-[#00FF66]'
+                      : 'text-neutral-800 dark:text-[#ECECED]'
+                  }`}
+                >
                   {item.value !== null ? formatTime(item.value, 'none', { precision }) : '—'}
                 </span>
               </div>

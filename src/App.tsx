@@ -76,9 +76,25 @@ export const App: React.FC = () => {
   const [isSessionModalOpen, setIsSessionModalOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isVirtualCubeActive, setIsVirtualCubeActive] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSolveDismissed, setIsSolveDismissed] = useState(true);
   const [isFocusMode, setIsFocusMode] = useState(false);
+  const [showFocusBadge, setShowFocusBadge] = useState(false);
 
+  const previousSessionIdRef = React.useRef<string | null>(null);
 
+  // Focus mode badge 2-second auto-dismiss
+  useEffect(() => {
+    if (isFocusMode) {
+      setShowFocusBadge(true);
+      const timer = setTimeout(() => {
+        setShowFocusBadge(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowFocusBadge(false);
+    }
+  }, [isFocusMode]);
 
   // Theme & Sound hooks
   useTheme(settings.theme);
@@ -131,6 +147,9 @@ export const App: React.FC = () => {
       if (!activeSession) return;
 
       const scrambleUsed = currentScramble;
+
+      // Make delta badge and time visible
+      setIsSolveDismissed(false);
 
       // 1. Save solve
       await addSolve({
@@ -222,6 +241,35 @@ export const App: React.FC = () => {
     setIsFocusMode((prev) => !prev);
   }, []);
 
+  // Virtual Cube Dedicated Session isolation & Handlers
+  const handleExitVirtualCube = useCallback(() => {
+    setIsVirtualCubeActive(false);
+    if (previousSessionIdRef.current) {
+      setActiveSession(previousSessionIdRef.current);
+      previousSessionIdRef.current = null;
+    }
+  }, [setActiveSession]);
+
+  const handleEnterVirtualCube = useCallback(async () => {
+    previousSessionIdRef.current = activeSessionId;
+    setIsSidebarCollapsed(true);
+    setIsVirtualCubeActive(true);
+
+    let vSession = sessions.find((s) => s.name === 'Cubo Virtual');
+    if (!vSession) {
+      vSession = await createSession('Cubo Virtual', '333');
+    }
+    setActiveSession(vSession.id);
+  }, [activeSessionId, sessions, createSession, setActiveSession]);
+
+  const handleToggleVirtualCube = useCallback(() => {
+    if (isVirtualCubeActive) {
+      handleExitVirtualCube();
+    } else {
+      handleEnterVirtualCube();
+    }
+  }, [isVirtualCubeActive, handleExitVirtualCube, handleEnterVirtualCube]);
+
   useKeyboardShortcuts({
     onNewScramble: () => generateNextScramble(activeSession?.event),
     onUndo: () => undoDeleteSolve(),
@@ -231,12 +279,15 @@ export const App: React.FC = () => {
     onToggleFocusMode: handleToggleFocusMode,
     onEscape: () => {
       if (isMobileSidebarOpen) setIsMobileSidebarOpen(false);
-      else if (isVirtualCubeActive) setIsVirtualCubeActive(false);
       else if (isStatsModalOpen) setIsStatsModalOpen(false);
       else if (isSettingsModalOpen) setIsSettingsModalOpen(false);
       else if (isSessionModalOpen) setIsSessionModalOpen(false);
       else if (isFocusMode) setIsFocusMode(false);
-      else resetTimer();
+      else {
+        // Reset timer and dismiss solve display + delta badge (never exit virtual cube on ESC)
+        setIsSolveDismissed(true);
+        resetTimer();
+      }
     },
     timerState,
     hasOpenModal,
@@ -331,10 +382,12 @@ export const App: React.FC = () => {
         precision={settings.timerPrecision}
       />
 
-      {/* Esquina superior derecha: Delta vs Solve Anterior */}
+      {/* Esquina superior derecha: Delta vs Solve Anterior (se oculta si no hay tiempo o tras ESC) */}
       <div
         className={`fixed top-3.5 right-3.5 sm:top-4 sm:right-5 z-30 transition-all duration-200 ${
-          hideSecondaryUI ? 'opacity-0 pointer-events-none -translate-y-2' : 'opacity-100 translate-y-0'
+          hideSecondaryUI || isSolveDismissed || (timerState === 'idle' && elapsed === 0)
+            ? 'opacity-0 pointer-events-none -translate-y-2'
+            : 'opacity-100 translate-y-0'
         }`}
       >
         <SolveDeltaBadge
@@ -343,9 +396,8 @@ export const App: React.FC = () => {
         />
       </div>
 
-
-      {/* Focus Mode floating escape pill */}
-      {isFocusMode && !isRunning && (
+      {/* Focus Mode floating escape pill (shows for 2 seconds then disappears) */}
+      {isFocusMode && !isRunning && showFocusBadge && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/75 dark:bg-[#141417]/85 backdrop-blur-xl border border-black/[0.08] dark:border-white/[0.1] text-xs text-neutral-600 dark:text-neutral-400 shadow-lg">
           <span>Modo Focus activo</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/[0.06] dark:bg-white/[0.1] font-mono text-neutral-800 dark:text-white">
@@ -360,17 +412,44 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {/* Floating Logo Toggle Button in Top-Left when Desktop Sidebar is Collapsed */}
+      {isSidebarCollapsed && !hideSecondaryUI && (
+        <div className="hidden md:block fixed top-3.5 left-3.5 z-30 transition-all duration-200">
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(false)}
+            className="p-2 sm:p-2.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-neutral-800 dark:text-neutral-200 transition-all flex items-center gap-2 group cursor-pointer"
+            title="Mostrar barra lateral"
+            aria-label="Abrir barra lateral"
+          >
+            <img
+              src="/favicon.svg"
+              alt="CuberT logo"
+              className="w-5 h-5 rounded-lg group-hover:scale-95 transition-transform"
+            />
+            <span className="font-bold tracking-tight text-xs text-neutral-900 dark:text-[#F5F5F7]">
+              CuberT
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* Mobile Sidebar Toggle Button */}
       <div className="md:hidden fixed top-3 left-3 z-30">
         <button
           type="button"
           onClick={() => setIsMobileSidebarOpen(true)}
-          className={`p-2.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-all ${
+          className={`p-2.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-all flex items-center gap-1.5 ${
             hideSecondaryUI ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}
           title="Abrir menú e historial"
+          aria-label="Abrir menú"
         >
-          <PanelLeft size={18} />
+          <img
+            src="/favicon.svg"
+            alt="CuberT logo"
+            className="w-5 h-5 rounded-lg shrink-0"
+          />
         </button>
       </div>
 
@@ -410,9 +489,10 @@ export const App: React.FC = () => {
               }}
               onToggleVirtualCube={() => {
                 setIsMobileSidebarOpen(false);
-                setIsVirtualCubeActive((prev) => !prev);
+                handleToggleVirtualCube();
               }}
               isVirtualCubeActive={isVirtualCubeActive}
+              onCollapseSidebar={() => setIsMobileSidebarOpen(false)}
               onUndoDelete={undoDeleteSolve}
               onUpdatePenalty={updatePenalty}
               onUpdateNote={updateNote}
@@ -426,7 +506,7 @@ export const App: React.FC = () => {
       {/* Desktop Floating Apple Music Sidebar */}
       <div
         className={`hidden md:block fixed top-3.5 bottom-3.5 left-3.5 z-30 transition-all duration-300 ${
-          hideSecondaryUI
+          hideSecondaryUI || isSidebarCollapsed
             ? 'opacity-0 pointer-events-none -translate-x-8 scale-95'
             : 'opacity-100 translate-x-0 scale-100'
         }`}
@@ -445,8 +525,9 @@ export const App: React.FC = () => {
           onOpenSessionManager={() => setIsSessionModalOpen(true)}
           onOpenStatsModal={() => setIsStatsModalOpen(true)}
           onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
-          onToggleVirtualCube={() => setIsVirtualCubeActive((prev) => !prev)}
+          onToggleVirtualCube={handleToggleVirtualCube}
           isVirtualCubeActive={isVirtualCubeActive}
+          onCollapseSidebar={() => setIsSidebarCollapsed(true)}
           onUndoDelete={undoDeleteSolve}
           onUpdatePenalty={updatePenalty}
           onUpdateNote={updateNote}
@@ -455,12 +536,10 @@ export const App: React.FC = () => {
         />
       </div>
 
-
-
       {/* Main Workspace */}
       <main
         className={`flex-1 w-full flex flex-col items-center justify-between pb-6 pt-4 sm:pt-6 relative min-h-screen transition-all duration-300 ${
-          isFocusMode || isRunning ? 'pl-0 pr-0' : 'md:pl-[300px] lg:pl-[320px] md:pr-6'
+          isFocusMode || isRunning || isSidebarCollapsed ? 'pl-0 pr-0' : 'md:pl-[300px] lg:pl-[320px] md:pr-6'
         }`}
       >
         {/* Scramble Display (Directly on background, no enclosing card) */}
@@ -499,11 +578,11 @@ export const App: React.FC = () => {
           <div className="w-full flex-1 flex flex-col items-center justify-center my-auto">
             {/* Center: Virtual Cube 3D */}
             <div className="w-full max-w-xl flex flex-col items-center justify-center">
-              <VirtualCube onClose={() => setIsVirtualCubeActive(false)} />
+              <VirtualCube onClose={handleExitVirtualCube} />
             </div>
 
-            {/* Side: Compact Timer on top-right background (NO card, away from cube and buttons) */}
-            <div className="fixed top-5 sm:top-6 right-5 sm:right-8 md:right-10 z-30 flex flex-col items-end pointer-events-auto select-none scale-75 sm:scale-85 md:scale-90 origin-top-right">
+            {/* Side: Centered on screen height against right edge, significantly smaller */}
+            <div className="fixed top-1/2 -translate-y-1/2 right-4 sm:right-6 md:right-8 z-30 flex flex-col items-end pointer-events-auto select-none scale-[0.55] sm:scale-[0.62] md:scale-[0.68] origin-right">
               <Timer
                 elapsed={elapsed}
                 state={timerState}
@@ -517,19 +596,6 @@ export const App: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Firma by Jhezdev alineada hacia la derecha con el tiempo */}
-        <div className="fixed bottom-2.5 right-6 sm:right-10 md:right-14 z-20 select-none text-right pointer-events-auto">
-          <a
-            href="https://jesus-herrera.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer author"
-            className="text-[11px] font-mono tracking-widest text-neutral-400 hover:text-neutral-900 dark:text-neutral-500 dark:hover:text-neutral-200 transition-colors"
-            title="Desarrollado por Jhezdev (Jesús Herrera)"
-          >
-            by Jhezdev
-          </a>
-        </div>
 
         {/* Mobile Scramble Cube Visualizer (bottom of screen on phones) */}
         <div

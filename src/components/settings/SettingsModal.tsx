@@ -6,7 +6,8 @@ import { Session } from '../../types/session';
 import { Solve } from '../../types/solve';
 import { createBackupJson, downloadBackupFile } from '../../features/backup/export';
 import { validateBackupJson, mergeImportData, ImportValidationResult } from '../../features/backup/import';
-import { Download, Upload, CheckCircle2, ShieldCheck, ExternalLink } from 'lucide-react';
+import { Download, Upload, CheckCircle2, ShieldCheck, ExternalLink, Trash2, AlertTriangle } from 'lucide-react';
+import { wipeAllData } from '../../storage/database';
 
 
 interface SettingsModalProps {
@@ -42,6 +43,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [pendingImport, setPendingImport] = useState<ImportValidationResult | null>(null);
   const [isConfirmingReplace, setIsConfirmingReplace] = useState(false);
   const [targetMode, setTargetMode] = useState<'current' | 'separate'>('current');
+  const [isConfirmingWipe, setIsConfirmingWipe] = useState(false);
+  const [isWiping, setIsWiping] = useState(false);
+
+  const handleWipeData = async () => {
+    if (!isConfirmingWipe) {
+      setIsConfirmingWipe(true);
+      return;
+    }
+    setIsWiping(true);
+    await wipeAllData();
+    window.location.reload();
+  };
 
   const handleExportBackup = () => {
     const jsonStr = createBackupJson(sessions, solves, settings);
@@ -497,6 +510,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   Ver solves
                 </Button>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Danger Zone: Vaciar Aplicación (Doble Confirmación) */}
+        <div className="flex flex-col gap-2.5 p-3.5 rounded-2xl bg-red-500/[0.04] dark:bg-red-500/[0.06] border border-red-500/20 select-none">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold text-red-600 dark:text-red-400">
+              <AlertTriangle size={15} />
+              <span>Zona de Peligro</span>
+            </div>
+            {isConfirmingWipe && (
+              <span className="text-[10px] font-mono uppercase text-red-500 animate-pulse font-bold">
+                Requiere segunda confirmación
+              </span>
+            )}
+          </div>
+
+          <div className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed">
+            Elimina permanentemente todas las sesiones, tiempos guardados, notas y configuraciones restableciendo la app a su estado original de fábrica.
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={handleWipeData}
+              disabled={isWiping}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                isConfirmingWipe
+                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-md animate-pulse'
+                  : 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20'
+              }`}
+            >
+              <Trash2 size={13} />
+              <span>
+                {isWiping
+                  ? 'Borrando datos...'
+                  : isConfirmingWipe
+                  ? '¿Confirmas borrar TODO? Haz clic para ejecutar'
+                  : 'Vaciar aplicación (Borrar todos los datos)'}
+              </span>
+            </button>
+
+            {isConfirmingWipe && !isWiping && (
+              <button
+                type="button"
+                onClick={() => setIsConfirmingWipe(false)}
+                className="px-3 py-2 rounded-xl text-xs font-medium bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-neutral-600 dark:text-neutral-300 transition-colors"
+              >
+                Cancelar
+              </button>
             )}
           </div>
         </div>

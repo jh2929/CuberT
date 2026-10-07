@@ -62,3 +62,29 @@ export async function getDatabase(): Promise<IDBPDatabase<CuberTDB> | null> {
 
   return dbPromise;
 }
+
+export async function wipeAllData(): Promise<void> {
+  try {
+    const db = await getDatabase();
+    if (db) {
+      if (db.objectStoreNames.contains('solves')) await db.clear('solves');
+      if (db.objectStoreNames.contains('sessions')) await db.clear('sessions');
+      if (db.objectStoreNames.contains('settings')) await db.clear('settings');
+      db.close();
+    }
+  } catch (err) {
+    console.warn('Error clearing object stores:', err);
+  }
+
+  try {
+    if (typeof window !== 'undefined' && window.indexedDB) {
+      window.indexedDB.deleteDatabase(DB_NAME);
+    }
+  } catch (err) {
+    console.warn('Error deleting database:', err);
+  }
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.clear();
+  }
+}
