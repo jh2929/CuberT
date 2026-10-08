@@ -11,6 +11,7 @@ export interface ShortcutHandlers {
   onEscape?: () => void;
   timerState: TimerState;
   hasOpenModal?: boolean;
+  isVirtualCubeActive?: boolean;
 }
 
 export function useKeyboardShortcuts({
@@ -23,6 +24,7 @@ export function useKeyboardShortcuts({
   onEscape,
   timerState,
   hasOpenModal = false,
+  isVirtualCubeActive = false,
 }: ShortcutHandlers) {
   useEffect(() => {
     const isInputElement = (target: EventTarget | null) => {
@@ -42,8 +44,14 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // If a modal is open, or timer is active, do not execute global action shortcuts
-      if (hasOpenModal || timerState === 'holding' || timerState === 'ready' || timerState === 'running') {
+      // If a modal is open, virtual cube is active, or timer is active, do not execute global action shortcuts
+      if (
+        hasOpenModal ||
+        isVirtualCubeActive ||
+        timerState === 'holding' ||
+        timerState === 'ready' ||
+        timerState === 'running'
+      ) {
         return;
       }
 
@@ -82,5 +90,6 @@ export function useKeyboardShortcuts({
     onEscape,
     timerState,
     hasOpenModal,
+    isVirtualCubeActive,
   ]);
 }

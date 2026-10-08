@@ -291,6 +291,7 @@ export const App: React.FC = () => {
     },
     timerState,
     hasOpenModal,
+    isVirtualCubeActive,
   });
 
 
@@ -412,9 +413,9 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Logo Toggle Button in Top-Left when Desktop Sidebar is Collapsed */}
+      {/* Top-Left Bar (Desktop): Sidebar Toggle + Virtual Cube Title & Exit Button */}
       {isSidebarCollapsed && !hideSecondaryUI && (
-        <div className="hidden md:block fixed top-3.5 left-3.5 z-30 transition-all duration-200">
+        <div className="hidden md:flex items-center gap-2 fixed top-3.5 left-3.5 z-30 transition-all duration-200">
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(false)}
@@ -431,17 +432,39 @@ export const App: React.FC = () => {
               CuberT
             </span>
           </button>
+
+          {/* Virtual Cube Title and Exit Button (only shown when in Virtual Cube and sidebar is closed) */}
+          {isVirtualCubeActive && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
+              <span className="font-mono text-xs font-bold tracking-tight text-neutral-900 dark:text-neutral-100 select-none">
+                Cubo Virtual 3×3
+              </span>
+              <div className="w-px h-3.5 bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+              <button
+                type="button"
+                onClick={handleExitVirtualCube}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer"
+                title="Volver al cronómetro normal"
+                aria-label="Volver al cronómetro normal"
+              >
+                <span>Volver al timer</span>
+                <X size={13} />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Mobile Sidebar Toggle Button */}
-      <div className="md:hidden fixed top-3 left-3 z-30">
+      {/* Mobile Sidebar Toggle Button + Virtual Cube Title & Exit Button */}
+      <div
+        className={`md:hidden flex items-center gap-2 fixed top-3 left-3 z-30 transition-all duration-200 ${
+          hideSecondaryUI || isMobileSidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
+      >
         <button
           type="button"
           onClick={() => setIsMobileSidebarOpen(true)}
-          className={`p-2.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-all flex items-center gap-1.5 ${
-            hideSecondaryUI ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
+          className="p-2.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-all flex items-center gap-1.5"
           title="Abrir menú e historial"
           aria-label="Abrir menú"
         >
@@ -451,6 +474,25 @@ export const App: React.FC = () => {
             className="w-5 h-5 rounded-lg shrink-0"
           />
         </button>
+
+        {isVirtualCubeActive && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
+            <span className="font-mono text-[11px] font-bold tracking-tight text-neutral-900 dark:text-neutral-100 select-none">
+              Cubo Virtual
+            </span>
+            <div className="w-px h-3 bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+            <button
+              type="button"
+              onClick={handleExitVirtualCube}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-rose-500/15 text-[11px] font-medium text-neutral-700 dark:text-neutral-200 transition-all"
+              title="Volver al timer"
+              aria-label="Volver al timer"
+            >
+              <span>Salir</span>
+              <X size={12} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mobile Sidebar Drawer */}

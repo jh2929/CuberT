@@ -4,13 +4,13 @@ import { CubeRenderer, CubeRendererAction } from './CubeRenderer';
 import { CubeControls } from './CubeControls';
 import { MoveHistory } from './MoveHistory';
 import { getInverseMove } from '../../features/virtualCube/cube.moves';
-import { Sparkles, X, HelpCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 interface VirtualCubeProps {
   onClose?: () => void;
 }
 
-export const VirtualCube: React.FC<VirtualCubeProps> = ({ onClose }) => {
+export const VirtualCube: React.FC<VirtualCubeProps> = () => {
   const {
     cube,
     history,
@@ -162,57 +162,6 @@ export const VirtualCube: React.FC<VirtualCubeProps> = ({ onClose }) => {
       role="application"
       aria-label="Cubo Virtual 3x3"
     >
-      {/* Top Bar with Title, Help and Close button grouped safely on left */}
-      <div className="w-full flex items-center justify-start gap-2.5 z-10 mb-2">
-        <span className="font-mono text-sm sm:text-base font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-          Cubo Virtual 3×3
-        </span>
-        <button
-          type="button"
-          onClick={() => setShowQuickHelp((prev) => !prev)}
-          className="p-1 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
-          title="Ver atajos básicos de teclado"
-          aria-label="Ayuda de atajos"
-        >
-          <HelpCircle size={15} />
-        </button>
-
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] text-xs font-medium text-neutral-700 dark:text-neutral-200 transition-all shadow-xs ml-2"
-            title="Volver al cronómetro normal"
-            aria-label="Volver al cronómetro normal"
-          >
-            <span>Volver al timer</span>
-            <X size={13} />
-          </button>
-        )}
-      </div>
-
-      {/* Quick Help Overlay */}
-      {showQuickHelp && (
-        <div className="w-full mb-3 p-3 rounded-2xl bg-white/80 dark:bg-[#141417]/90 backdrop-blur-md border border-black/[0.08] dark:border-white/[0.1] text-xs text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center justify-between gap-3 shadow-md">
-          <div className="flex flex-wrap gap-2">
-            <span><b>J</b>: U | <b>F</b>: U&apos;</span>
-            <span><b>I</b>: R | <b>K</b>: R&apos;</span>
-            <span><b>H</b>: F | <b>G</b>: F&apos;</span>
-            <span><b>D</b>: L | <b>E</b>: L&apos;</span>
-            <span><b>S</b>: D | <b>L</b>: D&apos;</span>
-            <span><b>W</b>: B | <b>O</b>: B&apos;</span>
-            <span><b>Ctrl+Z</b>: Deshacer</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowQuickHelp(false)}
-            className="text-[11px] font-semibold text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-          >
-            Ocultar
-          </button>
-        </div>
-      )}
-
       {/* Center 3D Interactive Rubik's Cube */}
       <div className="relative w-full flex items-center justify-center my-1 sm:my-2 min-h-[250px] sm:min-h-[290px] md:min-h-[320px]">
         <CubeRenderer lastAction={lastAction} />
