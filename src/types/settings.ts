@@ -20,7 +20,7 @@ export interface UserSettings {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: 'dark',
-  inspection: false,
+  inspection: true,
   timerPrecision: 2,
   holdDelay: 500,
   showScramble: true,
@@ -29,7 +29,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   confirmSolveDeletion: true,
   backupReminderInterval: 100,
   lastBackupSolveCount: 0,
-  luckyScrambles: true,
+  luckyScrambles: false,
   luckyScrambleLevel: 2,
 };
 

@@ -435,7 +435,7 @@ export const App: React.FC = () => {
 
           {/* Virtual Cube Title and Exit Button (only shown when in Virtual Cube and sidebar is closed) */}
           {isVirtualCubeActive && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
               <span className="font-mono text-xs font-bold tracking-tight text-neutral-900 dark:text-neutral-100 select-none">
                 Cubo Virtual 3×3
               </span>
@@ -443,12 +443,11 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExitVirtualCube}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/[0.05] dark:bg-white/[0.08] hover:bg-rose-500/15 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium text-neutral-700 dark:text-neutral-200 transition-all cursor-pointer"
-                title="Volver al cronómetro normal"
-                aria-label="Volver al cronómetro normal"
+                className="p-1 rounded-lg hover:bg-rose-500/15 text-neutral-500 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                title="Salir del Cubo Virtual"
+                aria-label="Salir del Cubo Virtual"
               >
-                <span>Volver al timer</span>
-                <X size={13} />
+                <X size={14} />
               </button>
             </div>
           )}
@@ -476,7 +475,7 @@ export const App: React.FC = () => {
         </button>
 
         {isVirtualCubeActive && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-2xl bg-white/75 dark:bg-[#121215]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.1)] animate-in fade-in duration-200">
             <span className="font-mono text-[11px] font-bold tracking-tight text-neutral-900 dark:text-neutral-100 select-none">
               Cubo Virtual
             </span>
@@ -484,12 +483,11 @@ export const App: React.FC = () => {
             <button
               type="button"
               onClick={handleExitVirtualCube}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-rose-500/15 text-[11px] font-medium text-neutral-700 dark:text-neutral-200 transition-all"
-              title="Volver al timer"
-              aria-label="Volver al timer"
+              className="p-1 rounded-lg hover:bg-rose-500/15 text-neutral-500 dark:text-neutral-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+              title="Salir del Cubo Virtual"
+              aria-label="Salir del Cubo Virtual"
             >
-              <span>Salir</span>
-              <X size={12} />
+              <X size={13} />
             </button>
           </div>
         )}
